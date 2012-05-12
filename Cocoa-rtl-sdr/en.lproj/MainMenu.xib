@@ -444,14 +444,14 @@
 								<object class="NSComboTableView" key="NSTableView" id="230807739">
 									<reference key="NSNextResponder"/>
 									<int key="NSvFlags">274</int>
-									<string key="NSFrameSize">{15, 0}</string>
+									<string key="NSFrameSize">{13, 0}</string>
 									<reference key="NSSuperview"/>
 									<reference key="NSWindow"/>
 									<string key="NSReuseIdentifierKey">_NS:738</string>
 									<bool key="NSEnabled">YES</bool>
 									<array class="NSMutableArray" key="NSTableColumns">
 										<object class="NSTableColumn">
-											<double key="NSWidth">12</double>
+											<double key="NSWidth">10</double>
 											<double key="NSMinWidth">10</double>
 											<double key="NSMaxWidth">1000</double>
 											<object class="NSTableHeaderCell" key="NSHeaderCell">
@@ -505,7 +505,7 @@
 									</object>
 									<double key="NSRowHeight">19</double>
 									<string key="NSAction">tableViewAction:</string>
-									<int key="NSTvFlags">-767524864</int>
+									<int key="NSTvFlags">-765427712</int>
 									<reference key="NSDelegate" ref="239645870"/>
 									<reference key="NSDataSource" ref="239645870"/>
 									<reference key="NSTarget" ref="239645870"/>
@@ -858,11 +858,11 @@
 														</object>
 														<string key="negativeInfinitySymbol">-∞</string>
 														<string key="nilSymbol"/>
-														<integer value="1" key="numberStyle"/>
+														<integer value="0" key="numberStyle"/>
 														<string key="positiveInfinitySymbol">+∞</string>
 													</dictionary>
-													<string key="NS.positiveformat">#,##0.###</string>
-													<string key="NS.negativeformat">#,##0.###</string>
+													<string key="NS.positiveformat">#</string>
+													<string key="NS.negativeformat">#</string>
 													<nil key="NS.positiveattrs"/>
 													<nil key="NS.negativeattrs"/>
 													<nil key="NS.zero"/>
@@ -890,7 +890,7 @@
 													</object>
 													<string key="NS.decimal">.</string>
 													<string key="NS.thousand">,</string>
-													<bool key="NS.hasthousands">YES</bool>
+													<bool key="NS.hasthousands">NO</bool>
 													<bool key="NS.localized">NO</bool>
 													<bool key="NS.allowsfloats">YES</bool>
 												</object>
@@ -927,7 +927,6 @@
 											<string key="NSFrame">{{353, 15}, {75, 18}}</string>
 											<reference key="NSSuperview" ref="709611584"/>
 											<reference key="NSWindow"/>
-											<reference key="NSNextKeyView"/>
 											<string key="NSReuseIdentifierKey">_NS:771</string>
 											<bool key="NSEnabled">YES</bool>
 											<object class="NSButtonCell" key="NSCell" id="538548834">

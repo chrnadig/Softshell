@@ -37,11 +37,15 @@
 	struct sigaction act;		
 	if( sigaction(SIGPIPE, NULL, &act) == -1)
 		perror("Couldn't find the old handler for SIGPIPE");
-	else if (act.sa_handler == SIG_DFL) {
-		act.sa_handler = SIG_IGN;
-		if( sigaction(SIGPIPE, &act, NULL) == -1)
-			perror("Could not ignore SIGPIPE");
-	}
+	else {
+        if (act.sa_handler == SIG_DFL) {
+            act.sa_handler = SIG_IGN;
+            if( sigaction(SIGPIPE, &act, NULL) == -1)
+                perror("Could not ignore SIGPIPE");
+            else
+                NSLog(@"Ignoring SIGPIPE");
+        }
+    }
 
     NSArray *tempDeviceList = [RTLSDRDevice deviceList];
     
