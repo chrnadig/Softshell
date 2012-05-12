@@ -131,6 +131,7 @@ error:
                 errno != ENOBUFS) {
                 NSLog(@"Unrecoverable error sending data to session %s", strerror(errno));
                 [theData release];
+                [delegate sessionTerminated:self];
                 return NO;
             }
             
