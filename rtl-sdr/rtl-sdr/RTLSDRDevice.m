@@ -495,10 +495,6 @@ static dispatch_once_t onceToken;
 {
 	uint16_t addr = i2c_addr;
 
-    if (len == 1) {
-        buffer[1] = 0x00;
-    }
-    
 #ifdef DEBUG_USB
     NSLog(@"i2c write address 0x%x data 0x%x length %d", i2c_addr, *(uint16_t *)buffer, len);
 #endif
