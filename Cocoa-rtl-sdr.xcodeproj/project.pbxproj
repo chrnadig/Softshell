@@ -18,6 +18,7 @@
 		3C159959154DABC00085A804 /* COPYING in Resources */ = {isa = PBXBuildFile; fileRef = 3C159957154DABC00085A804 /* COPYING */; };
 		3C1599A1154DB8FA0085A804 /* rtl-sdr.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C159983154DAEB10085A804 /* rtl-sdr.framework */; };
 		3C83ADD9154E281B009CE93C /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 3C15992E154DAAFE0085A804 /* main.m */; };
+		3CC9AE7D155E1BC70059387D /* rtl-sdr.framework in Resources */ = {isa = PBXBuildFile; fileRef = 3C159983154DAEB10085A804 /* rtl-sdr.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,7 +37,7 @@
 		3C0F4B10155CC7FA0084D784 /* NetworkSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NetworkSession.h; sourceTree = "<group>"; };
 		3C0F4B11155CC7FA0084D784 /* NetworkSession.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NetworkSession.m; sourceTree = "<group>"; };
 		3C0F4B4D155CCE220084D784 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
-		3C15991E154DAAFE0085A804 /* Cocoa-rtl-sdr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Cocoa-rtl-sdr.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C15991E154DAAFE0085A804 /* Cocoa-rtl-sdr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "Cocoa-rtl-sdr.app"; path = Softshell.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C159922154DAAFE0085A804 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		3C159925154DAAFE0085A804 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		3C159926154DAAFE0085A804 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
@@ -163,9 +164,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		3C15991D154DAAFE0085A804 /* Cocoa-rtl-sdr */ = {
+		3C15991D154DAAFE0085A804 /* Softshell */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3C15993C154DAAFE0085A804 /* Build configuration list for PBXNativeTarget "Cocoa-rtl-sdr" */;
+			buildConfigurationList = 3C15993C154DAAFE0085A804 /* Build configuration list for PBXNativeTarget "Softshell" */;
 			buildPhases = (
 				3C15991A154DAAFE0085A804 /* Sources */,
 				3C15991B154DAAFE0085A804 /* Frameworks */,
@@ -175,7 +176,7 @@
 			);
 			dependencies = (
 			);
-			name = "Cocoa-rtl-sdr";
+			name = Softshell;
 			productName = "Cocoa-rtl-sdr";
 			productReference = 3C15991E154DAAFE0085A804 /* Cocoa-rtl-sdr.app */;
 			productType = "com.apple.product-type.application";
@@ -207,7 +208,7 @@
 			);
 			projectRoot = "";
 			targets = (
-				3C15991D154DAAFE0085A804 /* Cocoa-rtl-sdr */,
+				3C15991D154DAAFE0085A804 /* Softshell */,
 			);
 		};
 /* End PBXProject section */
@@ -231,6 +232,7 @@
 				3C159933154DAAFE0085A804 /* Credits.rtf in Resources */,
 				3C159939154DAAFE0085A804 /* MainMenu.xib in Resources */,
 				3C159959154DABC00085A804 /* COPYING in Resources */,
+				3CC9AE7D155E1BC70059387D /* rtl-sdr.framework in Resources */,
 				3C0F4B4E155CCE220084D784 /* README in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -366,7 +368,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3C15993C154DAAFE0085A804 /* Build configuration list for PBXNativeTarget "Cocoa-rtl-sdr" */ = {
+		3C15993C154DAAFE0085A804 /* Build configuration list for PBXNativeTarget "Softshell" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3C15993D154DAAFE0085A804 /* Debug */,
