@@ -356,6 +356,7 @@
 				GCC_PREFIX_HEADER = "rtl-sdr/rtl-sdr-Prefix.pch";
 				HEADER_SEARCH_PATHS = "/opt/local/include/libusb-1.0";
 				INFOPLIST_FILE = "rtl-sdr/rtl-sdr-Info.plist";
+				INSTALL_PATH = "@executable_path/../Resources";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/opt/local/lib,
@@ -376,6 +377,7 @@
 				GCC_PREFIX_HEADER = "rtl-sdr/rtl-sdr-Prefix.pch";
 				HEADER_SEARCH_PATHS = "/opt/local/include/libusb-1.0";
 				INFOPLIST_FILE = "rtl-sdr/rtl-sdr-Info.plist";
+				INSTALL_PATH = "@executable_path/../Resources";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/opt/local/lib,
