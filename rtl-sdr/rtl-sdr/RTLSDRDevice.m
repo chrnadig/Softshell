@@ -9,6 +9,10 @@
 #import "RTLSDRDevice.h"
 #import "RTLSDRTuner.h"
 
+#define err_get_system(err) (((err)>>26)&0x3f)
+#define err_get_sub(err) (((err)>>14)&0xfff)
+#define err_get_code(err) ((err)&0x3fff)
+
 //#define DEBUG_USB
 
 // OSMOCOM RTL-SDR DERIVED CODE
@@ -1182,7 +1186,11 @@ static dispatch_once_t onceToken;
     kretval = (*bulkInterface)->ReadPipe(bulkInterface, bulkPipeRef, bytes, &size);
     if (kretval != kIOReturnSuccess)
     {
-        printf("Unable to perform bulk read (%08x)\n", kretval);
+        int system = err_get_system(kretval);
+        int subsys = err_get_sub(kretval);
+        int code = err_get_code(kretval);
+        
+        printf("Unable to perform bulk read (0x%08x): system 0x%x, subsystem 0x%x, code 0x%x.\n", kretval, system, subsys, code);
         [tempData release];
         return nil;
     }
