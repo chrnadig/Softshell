@@ -242,7 +242,7 @@
 		3C15995C154DAEB00085A804 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0420;
+				LastUpgradeCheck = 0430;
 				ORGANIZATIONNAME = "Oregon State University (COAS)";
 			};
 			buildConfigurationList = 3C15995F154DAEB00085A804 /* Build configuration list for PBXProject "rtl-sdr" */;
