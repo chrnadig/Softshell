@@ -37,9 +37,9 @@
 - (bool)connect;
 - (void)disconnect;
 
-- (bool)sendData:(NSData*)theData;
-- (NSData*)getData;
+- (NSData*)getDataLength:(NSInteger)length;
 
+- (bool)sendData:(NSData*)theData;
 - (size_t)send:(int)length bytes:(void *)data;
 
 - (void)setHostname:(NSString *)newHostname;

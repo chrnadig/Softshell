@@ -35,7 +35,8 @@
 - (id)init;
 
 // Start/stop server from listening
-- (bool)openWithPort: (int)port;
+- (int)open;
+- (bool)openWithPort:(int)port;
 - (void)close;
 
 // Getters/Setters

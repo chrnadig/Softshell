@@ -7,6 +7,7 @@
 //
 
 #import "NetworkServer.h"
+#import <OSULogger/OSULogger.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -40,15 +41,21 @@
 	return self;
 }
 
-- (bool)openWithPort: (int)inPort {	
+- (int)open
+{
+    [self openWithPort:0];
+    return [self port];
+}
+
+- (bool)openWithPort:(int)inPort {	
 	struct sockaddr_in server;
     
-	NSLog(@"Starting NetworkServer.\n");
+	OSULogs(LOG_FAIL, @"Starting NetworkServer.\n");
     
 	port = inPort;
     
 	if( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
-		NSLog(@"Error creating socket");
+		OSULogs(LOG_FAIL, @"Error creating socket");
 		error = true;
 		return false;
 	}
@@ -60,14 +67,32 @@
     int retval = bind(sock,
                       (struct sockaddr *)&server,
                       (socklen_t)sizeof(server));
+
 	if( retval < 0 ) {
-		NSLog(@"Error binding to port");
+		OSULogs(LOG_FAIL, @"Error binding to port");
 		error = true;
 		return false;
 	}
 	
+    // If the port is zero, the OS chose one for us.
+	if (port == 0) {
+        socklen_t localLen = sizeof(server);
+        retval = getsockname(sock,
+                             (struct sockaddr *)&server,
+                             &localLen);
+        if (retval == -1) {
+            OSULogs(LOG_WARN,
+                    @"Unable to get TCP sock port number: %s",
+                    strerror(errno));
+            close(sock);
+            return NO;
+        } else {
+            port = ntohs(server.sin_port);
+        }	
+	}
+    
 	if( listen(sock, SOMAXCONN) < 0 ) {
-		NSLog(@"Error listening for connections.");
+		OSULogs(LOG_FAIL, @"Error listening for connections.");
 		error = true;
 		return false;			
 	}
@@ -75,7 +100,7 @@
 	error	= false;
 	started = true;
     
-	NSLog(@"Started Network Server on port %d.\n", port);
+	OSULogs(LOG_INFO, @"Started Network Server on port %d.\n", port);
 	
 	return true;	
 }

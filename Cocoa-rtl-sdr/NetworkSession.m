@@ -7,6 +7,7 @@
 //
 
 #import "NetworkSession.h"
+#import <OSULogger/OSULogger.h>
 
 @implementation NetworkSession
 
@@ -172,16 +173,26 @@ error:
 	return retval;
 }
 
-- (NSData*)getData
+- (NSData*)getDataLength:(NSInteger)length
 {
 	if( !connected ) {
 		if( ![self connect] ) {
 			perror("Unable to receive, not connected and unable to connect");
 			return nil;
 		}
-	}	
+	}
+    
+    NSMutableData *tempData = [[NSMutableData alloc] initWithLength:length];
+    void *bytes = [tempData mutableBytes];
+    ssize_t retval = recv(fileDescriptor, bytes, length, MSG_WAITALL);
 	
-	return nil;
+    if (retval != length) {
+        OSULogs(LOG_WARN, @"Unable to complete read.");
+        [tempData release];
+        return nil;
+    }
+    
+	return [tempData autorelease];
 }
 
 - (size_t)bytesWritten
