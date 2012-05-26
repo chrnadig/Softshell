@@ -43,8 +43,11 @@
 
 - (int)open
 {
-    [self openWithPort:0];
-    return [self port];
+    if([self openWithPort:0]) {
+        return [self port];
+    } else {
+        return -1;
+    }
 }
 
 - (bool)openWithPort:(int)inPort {	

@@ -15,6 +15,8 @@
 {
 	self = [super init];
 	
+    OSULogs(LOG_INFO, @"Attempting to connect to: %@:%d", inHostName, inPort);
+    
 	if( self != nil ) {		
 		hp = gethostbyname( [inHostName UTF8String] );
 		if( hp == nil ) {
