@@ -171,17 +171,6 @@ static dispatch_once_t onceToken;
         // find the device again when the user opens it.
         io_service_t usbDevice;
         while ((usbDevice = IOIteratorNext(iterator))) {
-
-            // Get the USB device's name.
-            io_name_t deviceName;
-            kretval = IORegistryEntryGetName(usbDevice, deviceName);
-            if (KERN_SUCCESS != kretval) {
-                deviceName[0] = '\0';
-            }
-            
-            NSString *deviceNameString = [NSString stringWithCString:deviceName
-                                                            encoding:NSUTF8StringEncoding];
-
             // Now, we need to get the product and vendor IDs of this device.
             // In order to do this, we need to create an IOUSBDeviceInterface for our device.
             // This will create the necessary connections between our
@@ -222,6 +211,7 @@ static dispatch_once_t onceToken;
             kretval = (*deviceInterface)->GetDeviceVendor(deviceInterface, &idVendor);            
 
             // Search through the known devices array, looking for matches
+            NSString *deviceNameString = nil;
             const char *name = [self findKnownDeviceVendorID:idVendor
                                                     DeviceID:idProduct];
             if (name) {
