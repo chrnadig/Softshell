@@ -12,7 +12,7 @@
 
 @interface RTLSDRTuner : NSObject
 {
-    RTLSDRDevice *device;
+    RTLSDRDevice __weak *device;
     
     double freq;
     double xtal;

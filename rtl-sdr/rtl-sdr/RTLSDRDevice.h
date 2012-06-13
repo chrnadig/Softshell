@@ -18,6 +18,8 @@
 
 @class RTLSDRTuner;
 
+typedef void (^RTLSDRAsyncBlock)(NSData *resultData);
+
 @interface RTLSDRDevice : NSObject
 {
     NSUInteger rtlXtal;
@@ -34,7 +36,10 @@
     IOUSBDeviceInterface **dev;
     int bulkPacketSize;
     int bulkPipeRef;
-    IOUSBInterfaceInterface **bulkInterface;
+    IOUSBInterfaceInterface190 **bulkInterface;
+    
+    bool asyncRunning;
+    RTLSDRAsyncBlock asyncBlock;
     
 //    libusb_context *context;
 //    libusb_device_handle *devh;
@@ -97,7 +102,13 @@
 // The size must be multiples of 512, if zero defaults to
 - (bool)resetEndpoints;
 - (NSData *)readSychronousLength:(NSUInteger)length;
+
+
+- (void)readAsynchLength:(NSUInteger)length
+               withBlock:(RTLSDRAsyncBlock)block;
 - (bool)stopReading;
+@property(readonly) bool asyncRunning;
+@property(weak, readonly) RTLSDRAsyncBlock asyncBlock;
 
 /*!
  * Read samples from the device asynchronously. This function will block until

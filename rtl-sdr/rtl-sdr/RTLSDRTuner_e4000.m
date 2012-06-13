@@ -399,21 +399,18 @@
         // Initialize tuner.
         NSLog(@"tuner reset");
         if (![self tunerReset]) {
-            [self release];
             self = nil;
             return self;
         }
 
         NSLog(@"tuner clock");
         if (![self tunerClock]) {
-            [self release];
             self = nil;
             return self;
         }
         
         NSLog(@"q peak");
         if (![self qPeak]) {
-            [self release];
             self = nil;
             return self;
         }
@@ -426,7 +423,6 @@
 
         NSLog(@"gain control");
         if (![self gainControlInit]) {
-            [self release];
             self = nil;
             return self;
         }

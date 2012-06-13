@@ -161,7 +161,7 @@ static dispatch_once_t onceToken;
                                                usbMatchingDictionary, 
                                                &iterator);
         
-        if (kretval) {
+        if (kretval != kIOReturnSuccess) {
             NSLog(@"Error getting deviceList!");
         }
         
@@ -193,7 +193,11 @@ static dispatch_once_t onceToken;
             res = (*plugInInterface)->QueryInterface(plugInInterface,
                                                      CFUUIDGetUUIDBytes(kIOUSBDeviceInterfaceID),
                                                      (LPVOID*) &deviceInterface);
-            
+            if (res != kIOReturnSuccess) {
+                NSLog(@"Unable to query interface.");
+                continue;
+            }
+
             // Now done with the plugin interface.
             (*plugInInterface)->Release(plugInInterface);
             
@@ -207,8 +211,22 @@ static dispatch_once_t onceToken;
             UInt32 idLocation;
             UInt16 idProduct, idVendor;
             kretval = (*deviceInterface)->GetLocationID(deviceInterface, &idLocation);
+            if (kretval != kIOReturnSuccess) {
+                NSLog(@"Error getting locationID.");
+                continue;
+            }
+
             kretval = (*deviceInterface)->GetDeviceProduct(deviceInterface, &idProduct);
-            kretval = (*deviceInterface)->GetDeviceVendor(deviceInterface, &idVendor);            
+            if (kretval != kIOReturnSuccess) {
+                NSLog(@"Error getting device product.");
+                continue;
+            }
+
+            kretval = (*deviceInterface)->GetDeviceVendor(deviceInterface, &idVendor);
+            if (kretval != kIOReturnSuccess) {
+                NSLog(@"Error getting device vendor.");
+                continue;
+            }
 
             // Search through the known devices array, looking for matches
             NSString *deviceNameString = nil;
@@ -233,6 +251,10 @@ static dispatch_once_t onceToken;
 #endif            
             // Done with this USB device; release the reference added by IOIteratorNext
             kretval = IOObjectRelease(usbDevice);
+            if (kretval != kIOReturnSuccess) {
+                NSLog(@"Error releasing object.");
+                continue;
+            }
         }
         
 //        CFRelease(&iterator);
@@ -630,31 +652,29 @@ static dispatch_once_t onceToken;
 - (bool)configureDevice
 {
     UInt8                           numConfig;
-    IOReturn                        kr;
+    IOReturn                        kretval;
     IOUSBConfigurationDescriptorPtr configDesc;
     
     //Get the number of configurations. The sample code always chooses
     //the first configuration (at index 0) but your code may need a
     //different one
-    kr = (*dev)->GetNumberOfConfigurations(dev, &numConfig);
-    if (!numConfig)
+    kretval = (*dev)->GetNumberOfConfigurations(dev, &numConfig);
+    if (kretval != kIOReturnSuccess) {
         return NO;
+    }
     
     //Get the configuration descriptor for index 0
-    kr = (*dev)->GetConfigurationDescriptorPtr(dev, 0, &configDesc);
-    if (kr)
-    {
-        printf("Couldn’t get configuration descriptor for index %d (err = %08x)\n", 0, kr);
+    kretval = (*dev)->GetConfigurationDescriptorPtr(dev, 0, &configDesc);
+    if (kretval != kIOReturnSuccess) {
+        printf("Couldn’t get configuration descriptor for index %d (err = %08x)\n", 0, kretval);
         return NO;
     }
     
     //Set the device’s configuration. The configuration value is found in
     //the bConfigurationValue field of the configuration descriptor
-    kr = (*dev)->SetConfiguration(dev, configDesc->bConfigurationValue);
-    if (kr)
-    {
-        printf("Couldn’t set configuration to value %d (err = %08x)\n", 0,
-               kr);
+    kretval = (*dev)->SetConfiguration(dev, configDesc->bConfigurationValue);
+    if (kretval != kIOReturnSuccess) {
+        printf("Couldn’t set configuration to value %d (err = %08x)\n", 0, kretval);
         return NO;
     }
     
@@ -677,6 +697,11 @@ static dispatch_once_t onceToken;
     //Get an iterator for the interfaces on the device
     io_iterator_t               iterator;
     kretval = (*dev)->CreateInterfaceIterator(dev, &request, &iterator);
+    if (kretval != kIOReturnSuccess) {
+        NSLog(@"Unable to create interface iterator.");
+        return NO;
+    }
+    
     io_service_t usbInterface;
     while ((usbInterface = IOIteratorNext(iterator)) != 0)
     {
@@ -687,6 +712,10 @@ static dispatch_once_t onceToken;
                                                kIOUSBInterfaceUserClientTypeID,
                                                kIOCFPlugInInterfaceID,
                                                &plugInInterface, &score);
+        if (kretval != kIOReturnSuccess) {
+            NSLog(@"Unable to create plugin interface for service.");
+            continue;
+        }
 
         //Release the usbInterface object after getting the plug-in
         kretval = IOObjectRelease(usbInterface);
@@ -712,10 +741,17 @@ static dispatch_once_t onceToken;
         }
 
         kretval = (*interface)->GetInterfaceClass(interface,    &interfaceClass);
+        if (kretval != kIOReturnSuccess) {
+            NSLog(@"Unable to get interface class.");
+            continue;
+        }
+
         kretval = (*interface)->GetInterfaceSubClass(interface, &interfaceSubClass);
-        
-//        printf("Interface class %d, subclass %d\n", interfaceClass, interfaceSubClass);
-        
+        if (kretval != kIOReturnSuccess) {
+            NSLog(@"Unable to get interface sub class.");
+            continue;
+        }
+
         //Now open the interface. This will cause the pipes associated with
         //the endpoints in the interface descriptor to be instantiated
         kretval = (*interface)->USBInterfaceOpen(interface);
@@ -761,55 +797,11 @@ static dispatch_once_t onceToken;
                        pipeRef, kr2);
             else
             {
-                /*
-                printf("PipeRef %d: ", pipeRef);
-                switch (direction)
-                {
-                    case kUSBOut:
-                        message = "out";
-                        break;
-                    case kUSBIn:
-                        message = "in";
-                        break;
-                    case kUSBNone:
-                        message = "none";
-                        break;
-                    case kUSBAnyDirn:
-                        message = "any";
-                        break;
-                    default:
-                        message = "???";
-                }
-                printf("direction %s, ", message);
-                
-                switch (transferType)
-                {
-                    case kUSBControl:
-                        message = "control";
-                        break;
-                    case kUSBIsoc:
-                        message = "isoc";
-                        break;
-                    case kUSBBulk:
-                        message = "bulk";
-                        break;
-                    case kUSBInterrupt:
-                        message = "interrupt";
-                        break;
-                    case kUSBAnyType:
-                        message = "any";
-                        break;
-                    default:
-                        message = "???";
-                }
-                printf("transfer type %s, maxPacketSize %d\n", message,
-                       maxPacketSize);
-                 */
                 // Try to identify the correct interface robustly
                 if (number == 1 && 
                     transferType == kUSBBulk &&
                     direction == kUSBIn) {
-                    bulkInterface = interface;
+                    bulkInterface = (IOUSBInterfaceInterface190 **)interface;
                     bulkPacketSize = maxPacketSize;
                     bulkPipeRef = number;
 //                    NSLog(@"Found bulk interface");
@@ -894,6 +886,12 @@ static dispatch_once_t onceToken;
 {
     self = [super init];
     if (self) {
+        asyncRunning = NO;
+        
+        if (deviceList == nil) {
+            [RTLSDRDevice deviceList];
+        }
+        
         NSNumber *idLocationNumber = [[deviceList objectAtIndex:index] objectForKey:@"deviceLocation"];
         UInt32 idLocation = (uint32_t)[idLocationNumber integerValue];
         
@@ -950,7 +948,11 @@ static dispatch_once_t onceToken;
             
             UInt32 idLocationTest;
             kretval = (*dev)->GetLocationID(dev, &idLocationTest);
-            
+            if (kretval != kIOReturnSuccess) {
+                NSLog(@"Error getting locationID.");
+                continue;
+            }
+
             // If the location ID matches the one stored in the dict, we've found the device
             if (idLocationTest == idLocation) {
                 break;
@@ -965,7 +967,6 @@ static dispatch_once_t onceToken;
         {
             printf("Unable to open device: %08x\n", kretval);
             (void) (*dev)->Release(dev);
-            [self release];
             self = nil;
             return self;
         }
@@ -976,7 +977,6 @@ static dispatch_once_t onceToken;
             printf("Unable to configure device: %08x\n", kretval);
             (void) (*dev)->USBDeviceClose(dev);
             (void) (*dev)->Release(dev);
-            [self release];
             self = nil;
             return self;
         }
@@ -989,11 +989,9 @@ static dispatch_once_t onceToken;
         tuner = [RTLSDRTuner createTunerForDevice:self];
         
         if (tuner == nil) {
-            [self release];
             self = nil;
             return self;
         } else {
-            [tuner retain];
         }
         
         [tuner setXtal:rtlXtal];
@@ -1174,6 +1172,7 @@ static dispatch_once_t onceToken;
     
     IOReturn kretval;
     kretval = (*bulkInterface)->ReadPipe(bulkInterface, bulkPipeRef, bytes, &size);
+
     if (kretval != kIOReturnSuccess)
     {
         int system = err_get_system(kretval);
@@ -1181,13 +1180,182 @@ static dispatch_once_t onceToken;
         int code = err_get_code(kretval);
         
         printf("Unable to perform bulk read (0x%08x): system 0x%x, subsystem 0x%x, code 0x%x.\n", kretval, system, subsys, code);
-        [tempData release];
-        return nil;
+
+        (*bulkInterface)->ClearPipeStallBothEnds(bulkInterface, bulkPipeRef);
+        kretval = (*bulkInterface)->ReadPipe(bulkInterface, bulkPipeRef, bytes, &size);
+        if (kretval != kIOReturnSuccess) {
+            printf("Clear pipe stall didn't work");
+
+            (*bulkInterface)->ResetPipe(bulkInterface, bulkPipeRef);
+            kretval = (*bulkInterface)->ReadPipe(bulkInterface, bulkPipeRef, bytes, &size);
+            if (kretval != kIOReturnSuccess) {
+                printf("Reset pipe didn't work");
+                
+                [self resetEndpoints];
+                kretval = (*bulkInterface)->ReadPipe(bulkInterface, bulkPipeRef, bytes, &size);
+                if (kretval != kIOReturnSuccess) {
+                    printf("Reset endpoints didn't work, I'm out of options.");
+                    return nil;
+                }
+            }
+        }
     }
     
-//    printf("Read %u bytes from the bulk endpoint\n", size);
-
-    return [tempData autorelease];
+    return tempData;
 }
 
+/*
+typedef struct {
+    IOUSBInterfaceInterface **bulkInterface;
+    int pipeRef;
+    
+    NSUInteger newLength;
+    NSUInteger length;
+    NSMutableData *tempData;
+
+    RTLSDRDevice *device;
+} context_t;
+
+static context_t asyncContext;
+
+
+@synthesize asyncRunning;
+void asyncCallback(void *refcon, IOReturn kretval, void *arg0);
+void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
+{
+    context_t *contextPointer = refcon;
+    RTLSDRDevice *device = contextPointer->device;
+
+    IOUSBInterfaceInterface **bulkInterface = contextPointer->bulkInterface;
+    int pipeRef = contextPointer->pipeRef;
+
+    NSUInteger length = contextPointer->length;
+    NSMutableData *tempData = contextPointer->tempData;
+    
+// Make sure it worked
+    if (kretval != kIOReturnSuccess)
+    {
+        int system = err_get_system(kretval);
+        int subsys = err_get_sub(kretval);
+        int code = err_get_code(kretval);
+        
+        printf("Unable to perform async. bulk read (0x%08x): system 0x%x,\
+               subsystem 0x%x, code 0x%x.\n", 
+               kretval, system, subsys, code);
+        [device stopReading];
+        return;
+    }
+
+// It's probably not wise to execute blocks if stopped
+    if([device asyncRunning]) {
+        // Schedule the block to run
+        RTLSDRAsyncBlock block = [device block];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSData *outData = [tempData copy];
+            block(outData);
+            [outData release];
+        });
+        
+// run it again, sam!
+    // Adjust the data size if neccessary
+        if (asyncContext.newLength != 0 &&
+            asyncContext.newLength != asyncContext.length) {
+            [asyncContext.tempData setLength:length];
+            asyncContext.length = length;
+            asyncContext.newLength = 0;
+        }
+
+    // Get a reference to the actual bytes        
+        uint8_t *bytes = [tempData mutableBytes];
+        UInt32 size = (UInt32)length;
+
+    // Run the Async command again
+        kretval = (*bulkInterface)->ReadPipeAsync(bulkInterface,
+                                                  pipeRef,
+                                                  bytes, size,
+                                                  asyncCallback,
+                                                  &asyncContext);
+        
+    // Check for errors
+        if (kretval != kIOReturnSuccess)
+        {
+            int system = err_get_system(kretval);
+            int subsys = err_get_sub(kretval);
+            int code = err_get_code(kretval);
+            
+            printf("Unable to perform bulk read (0x%08x): system 0x%x,\
+                   subsystem 0x%x, code 0x%x.\n", 
+                   kretval, system, subsys, code);
+            [tempData release];
+            [device stopReading];
+        }
+        
+        contextPointer->tempData = tempData;
+    }
+}
+
+-(void)readAsynchLength:(NSUInteger)length
+              withBlock:(RTLSDRAsyncBlock)inBlock
+{
+// Do all the same checking as readSync
+    // Make sure that the length is a multiple of the packet size
+    if (length % bulkPacketSize != 0) {
+        NSLog(@"Attempted read not of an integer number of packets");
+        return;
+    }
+
+    // If we're already running, change the response block
+    if (asyncRunning) {
+        [block release];
+        block = [inBlock copy];
+
+        // Change the data length if necessary
+        if (length != asyncContext.length) {
+            asyncContext.newLength = length;
+        }
+        return;
+    }
+    
+    // Create an NSMutableData object
+    NSMutableData *tempData = [[NSMutableData alloc] initWithLength:length];
+    // Get a reference to the actual bytes
+    uint8_t *bytes = [tempData mutableBytes];
+    UInt32 size = (UInt32)length;
+
+    block = [inBlock copy];
+    asyncContext.device = self;
+    asyncContext.length = length;
+    asyncContext.tempData = tempData;
+    
+    IOReturn kretval;
+    kretval = (*bulkInterface)->ReadPipeAsync(bulkInterface,
+                                              bulkPipeRef,
+                                              bytes, size,
+                                              asyncCallback,
+                                              &asyncContext);
+    if (kretval != kIOReturnSuccess)
+    {
+        int system = err_get_system(kretval);
+        int subsys = err_get_sub(kretval);
+        int code = err_get_code(kretval);
+        
+        printf("Unable to perform bulk read (0x%08x): system 0x%x,\
+               subsystem 0x%x, code 0x%x.\n", 
+               kretval, system, subsys, code);
+        return;
+    }
+}
+
+- (void)stop
+{
+    asyncRunning = NO;
+
+    [block release];
+    block = nil;
+
+    [asyncContext.tempData release];
+    asyncContext.tempData = nil;
+}
+*/
 @end
