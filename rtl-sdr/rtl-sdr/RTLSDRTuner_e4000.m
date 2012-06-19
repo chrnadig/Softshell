@@ -1345,7 +1345,7 @@
 {
     [device setI2cRepeater:YES];
 
-    NSLog(@"Set frequency to %f", freqIn);
+    NSLog(@"Set frequency to %f KHz", freqIn);
     // OSMOCOM RTL-SDR DERIVED CODE
 	// Set tuner RF frequency in KHz.
 	// Note: 1. RfFreqKhz = round(RfFreqHz / 1000)
