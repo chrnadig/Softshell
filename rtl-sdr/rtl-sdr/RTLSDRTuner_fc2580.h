@@ -2,8 +2,8 @@
 //  RTLSDRTuner_fc2580.h
 //  rtl-sdr
 //
-//  Created by William Dillon on 4/30/12.
-//  Copyright (c) 2012 Oregon State University (COAS). All rights reserved.
+//  Created by William Dillon on 6/7/12.
+//  Copyright (c) 2012. All rights reserved.
 //
 
 #import "RTLSDRTuner.h"
