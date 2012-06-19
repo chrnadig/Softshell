@@ -108,7 +108,7 @@ typedef void (^RTLSDRAsyncBlock)(NSData *resultData);
                withBlock:(RTLSDRAsyncBlock)block;
 - (bool)stopReading;
 @property(readonly) bool asyncRunning;
-@property(weak, readonly) RTLSDRAsyncBlock asyncBlock;
+@property(readonly) RTLSDRAsyncBlock asyncBlock;
 
 /*!
  * Read samples from the device asynchronously. This function will block until
