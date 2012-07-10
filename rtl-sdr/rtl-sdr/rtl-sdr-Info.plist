@@ -23,7 +23,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2012 Oregon State University (COAS). All rights reserved.</string>
+	<string>Copyright © 2012. All rights reserved. Licensed under the GPL v.2</string>
 	<key>NSPrincipalClass</key>
 	<string></string>
 </dict>

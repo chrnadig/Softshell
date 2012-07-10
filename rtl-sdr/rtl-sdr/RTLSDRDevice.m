@@ -3,7 +3,7 @@
 //  rtl-sdr
 //
 //  Created by William Dillon on 6/7/12.
-//  Copyright (c) 2012. All rights reserved.
+//  Copyright (c) 2012. All rights reserved. Licensed under the GPL v.2
 //
 
 #import "RTLSDRDevice.h"
@@ -890,6 +890,12 @@ static dispatch_once_t onceToken;
         
         if (deviceList == nil) {
             [RTLSDRDevice deviceList];
+        }
+        
+        if (index >= [deviceList count]) {
+            NSLog(@"Attempting to access a device that doesn't exist.");
+            self = nil;
+            return nil;
         }
         
         NSNumber *idLocationNumber = [[deviceList objectAtIndex:index] objectForKey:@"deviceLocation"];
