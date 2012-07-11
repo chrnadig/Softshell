@@ -7,7 +7,6 @@
 //
 
 #import "NetworkSession.h"
-#import <OSULogger/OSULogger.h>
 
 @implementation NetworkSession
 
@@ -15,7 +14,7 @@
 {
 	self = [super init];
 	
-    OSULogs(LOG_INFO, @"Attempting to connect to: %@:%d", inHostName, inPort);
+    NSLog(@"Attempting to connect to: %@:%d", inHostName, inPort);
     
 	if( self != nil ) {		
 		hp = gethostbyname( [inHostName UTF8String] );
@@ -189,7 +188,7 @@ error:
     ssize_t retval = recv(fileDescriptor, bytes, length, MSG_WAITALL);
 	
     if (retval != length) {
-        OSULogs(LOG_WARN, @"Unable to complete read.");
+        NSLog(@"Unable to complete read.");
         [tempData release];
         return nil;
     }
