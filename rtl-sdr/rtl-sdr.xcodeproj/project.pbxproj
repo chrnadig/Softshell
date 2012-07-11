@@ -58,7 +58,6 @@
 		3C159999154DB17C0085A804 /* tuner_fc2580.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tuner_fc2580.h; sourceTree = "<group>"; };
 		3C1599A2154DBAFD0085A804 /* RTLSDRTuner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = RTLSDRTuner.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		3C1599A3154DBAFD0085A804 /* RTLSDRTuner.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = RTLSDRTuner.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
-		3C743F931550EB9300F81255 /* libusb-1.0.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libusb-1.0.a"; path = "../../../../../../../opt/local/lib/libusb-1.0.a"; sourceTree = "<group>"; };
 		3C743FA71551761800F81255 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		3C83ADD4154DD4DA009CE93C /* libusb.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = libusb.h; sourceTree = "<group>"; };
 		3CCB79CC154F843700EB0A43 /* RTLSDRTuner_e4000.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = RTLSDRTuner_e4000.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
@@ -87,7 +86,6 @@
 		3C15995A154DAEB00085A804 = {
 			isa = PBXGroup;
 			children = (
-				3C743F931550EB9300F81255 /* libusb-1.0.a */,
 				3C15996F154DAEB00085A804 /* rtl-sdr */,
 				3C159968154DAEB00085A804 /* Frameworks */,
 				3C159967154DAEB00085A804 /* Products */,
