@@ -948,6 +948,10 @@ static dispatch_once_t onceToken;
             res = (*plugInInterface)->QueryInterface(plugInInterface,
                                                      CFUUIDGetUUIDBytes(kIOUSBDeviceInterfaceID),
                                                      (LPVOID*) &dev);
+            if (IS_ERROR(res)) {
+                NSLog(@"Error while querying USB interface.");
+                continue;
+            }
             
             // Now done with the plugin interface.
             (*plugInInterface)->Release(plugInInterface);
@@ -1190,17 +1194,17 @@ static dispatch_once_t onceToken;
         (*bulkInterface)->ClearPipeStallBothEnds(bulkInterface, bulkPipeRef);
         kretval = (*bulkInterface)->ReadPipe(bulkInterface, bulkPipeRef, bytes, &size);
         if (kretval != kIOReturnSuccess) {
-            printf("Clear pipe stall didn't work");
+            printf("Clear pipe stall didn't work\n");
 
             (*bulkInterface)->ResetPipe(bulkInterface, bulkPipeRef);
             kretval = (*bulkInterface)->ReadPipe(bulkInterface, bulkPipeRef, bytes, &size);
             if (kretval != kIOReturnSuccess) {
-                printf("Reset pipe didn't work");
+                printf("Reset pipe didn't work\n");
                 
                 [self resetEndpoints];
                 kretval = (*bulkInterface)->ReadPipe(bulkInterface, bulkPipeRef, bytes, &size);
                 if (kretval != kIOReturnSuccess) {
-                    printf("Reset endpoints didn't work, I'm out of options.");
+                    printf("Reset endpoints didn't work, I'm out of options.\n");
                     return nil;
                 }
             }
