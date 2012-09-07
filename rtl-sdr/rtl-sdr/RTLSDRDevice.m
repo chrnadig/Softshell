@@ -1214,23 +1214,30 @@ static dispatch_once_t onceToken;
     return tempData;
 }
 
-/*
+
 typedef struct {
     IOUSBInterfaceInterface **bulkInterface;
     int pipeRef;
     
     NSUInteger newLength;
     NSUInteger length;
-    NSMutableData *tempData;
-
-    RTLSDRDevice *device;
+    
+    // Obj-C objects needed for asynchronous operation
+    __unsafe_unretained NSMutableData *tempData;
+    __unsafe_unretained RTLSDRDevice *device;
 } context_t;
 
 static context_t asyncContext;
 
+#pragma mark Asynchronous operations
+- (RTLSDRAsyncBlock)block
+{
+    return asyncBlock;
+}
 
 @synthesize asyncRunning;
 void asyncCallback(void *refcon, IOReturn kretval, void *arg0);
+
 void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
 {
     context_t *contextPointer = refcon;
@@ -1264,7 +1271,6 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
         dispatch_async(dispatch_get_main_queue(), ^{
             NSData *outData = [tempData copy];
             block(outData);
-            [outData release];
         });
         
 // run it again, sam!
@@ -1297,7 +1303,7 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
             printf("Unable to perform bulk read (0x%08x): system 0x%x,\
                    subsystem 0x%x, code 0x%x.\n", 
                    kretval, system, subsys, code);
-            [tempData release];
+
             [device stopReading];
         }
         
@@ -1317,8 +1323,7 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
 
     // If we're already running, change the response block
     if (asyncRunning) {
-        [block release];
-        block = [inBlock copy];
+        asyncBlock = inBlock;
 
         // Change the data length if necessary
         if (length != asyncContext.length) {
@@ -1333,7 +1338,7 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
     uint8_t *bytes = [tempData mutableBytes];
     UInt32 size = (UInt32)length;
 
-    block = [inBlock copy];
+    asyncBlock = inBlock;
     asyncContext.device = self;
     asyncContext.length = length;
     asyncContext.tempData = tempData;
@@ -1360,12 +1365,8 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
 - (void)stop
 {
     asyncRunning = NO;
-
-    [block release];
-    block = nil;
-
-    [asyncContext.tempData release];
+    asyncBlock = nil;
     asyncContext.tempData = nil;
 }
-*/
+
 @end
