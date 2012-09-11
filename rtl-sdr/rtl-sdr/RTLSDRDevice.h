@@ -18,7 +18,7 @@
 
 @class RTLSDRTuner;
 
-typedef void (^RTLSDRAsyncBlock)(NSData *resultData);
+typedef void (^RTLSDRAsyncBlock)(NSData *resultData, float duration);
 
 @interface RTLSDRDevice : NSObject
 {
@@ -29,15 +29,19 @@ typedef void (^RTLSDRAsyncBlock)(NSData *resultData);
     NSUInteger centerFreq;
     NSUInteger freqCorrection;
     NSUInteger tunerGain;
+
     double sampleRate;
-    
+
     RTLSDRTuner *tuner;
     
     IOUSBDeviceInterface **dev;
     int bulkPacketSize;
     int bulkPipeRef;
-    IOUSBInterfaceInterface190 **bulkInterface;
+    IOUSBInterfaceInterface220 **bulkInterface;
+    IONotificationPortRef notifyPort;
+    CFRunLoopSourceRef runLoopSource;
     
+    dispatch_queue_t asyncQueue;
     bool asyncRunning;
     RTLSDRAsyncBlock asyncBlock;
     
@@ -93,6 +97,7 @@ typedef void (^RTLSDRAsyncBlock)(NSData *resultData);
  */
 - (double)sampleRate;
 - (double)setSampleRate:(double)sampleRate;
+@property(readwrite) double realSampleRate;
 
 /* streaming functions */
 
@@ -129,12 +134,6 @@ typedef void (^RTLSDRAsyncBlock)(NSData *resultData);
 //                                 void *ctx,
 //                                 uint32_t buf_num,
 //                                 uint32_t buf_len);
-
-/*!
- * Cancel all pending asynchronous operations on the device.
- *
- */
-- (void)cancelOperations;
 
 // These methods should only be called from within the library!
 - (void)setI2cRepeater:(bool)enabled;

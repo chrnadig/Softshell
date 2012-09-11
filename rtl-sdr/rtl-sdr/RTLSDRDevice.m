@@ -9,6 +9,10 @@
 #import "RTLSDRDevice.h"
 #import "RTLSDRTuner.h"
 
+#import <mach/mach_time.h>
+
+#import "radioProbes.h"
+
 #define err_get_system(err) (((err)>>26)&0x3f)
 #define err_get_sub(err) (((err)>>14)&0xfff)
 #define err_get_code(err) ((err)&0x3fff)
@@ -685,14 +689,13 @@ static dispatch_once_t onceToken;
 - (bool)findInterfaces
 {
     IOReturn kretval;
-    
-    IOUSBFindInterfaceRequest   request;
-    request.bInterfaceClass = kIOUSBFindInterfaceDontCare;
+    UInt8    interfaceClass;
+    UInt8    interfaceSubClass;
+    IOUSBFindInterfaceRequest  request;
+    request.bInterfaceClass    = kIOUSBFindInterfaceDontCare;
     request.bInterfaceSubClass = kIOUSBFindInterfaceDontCare;
     request.bInterfaceProtocol = kIOUSBFindInterfaceDontCare;
-    request.bAlternateSetting = kIOUSBFindInterfaceDontCare;
-    UInt8                       interfaceClass;
-    UInt8                       interfaceSubClass;
+    request.bAlternateSetting  = kIOUSBFindInterfaceDontCare;
     
     //Get an iterator for the interfaces on the device
     io_iterator_t               iterator;
@@ -801,7 +804,7 @@ static dispatch_once_t onceToken;
                 if (number == 1 && 
                     transferType == kUSBBulk &&
                     direction == kUSBIn) {
-                    bulkInterface = (IOUSBInterfaceInterface190 **)interface;
+                    bulkInterface = (IOUSBInterfaceInterface220 **)interface;
                     bulkPacketSize = maxPacketSize;
                     bulkPipeRef = number;
 //                    NSLog(@"Found bulk interface");
@@ -811,72 +814,19 @@ static dispatch_once_t onceToken;
             }
         }
         
-        /*
-#ifndef USE_ASYNC_IO    //Demonstrate synchronous I/O
-        kretval = (*interface)->WritePipe(interface, 2, kTestMessage, strlen(kTestMessage));
+//Demonstrate asynchronous I/O
+        kretval = (*interface)->CreateInterfaceAsyncEventSource(bulkInterface, &runLoopSource);
         if (kretval != kIOReturnSuccess)
         {
-            printf("Unable to perform bulk write (%08x)\n", kr);
-            (void) (*interface)->USBInterfaceClose(interface);
-            (void) (*interface)->Release(interface);
+            printf("Unable to create asynchronous event source (%08x)\n", kretval);
+            (void) (*bulkInterface)->USBInterfaceClose(bulkInterface);
+            (void) (*bulkInterface)->Release(bulkInterface);
             break;
         }
-        
-        printf("Wrote \"%s\" (%ld bytes) to bulk endpoint\n", kTestMessage,
-               (UInt32) strlen(kTestMessage));
-        
-        numBytesRead = sizeof(gBuffer) - 1; //leave one byte at the end
-        //for NULL termination
-        kr = (*interface)->ReadPipe(interface, 9, gBuffer,
-                                    &numBytesRead);
-        if (kr != kIOReturnSuccess)
-        {
-            printf("Unable to perform bulk read (%08x)\n", kr);
-            (void) (*interface)->USBInterfaceClose(interface);
-            (void) (*interface)->Release(interface);
-            break;
-        }
-        
-        //Because the downloaded firmware echoes the one’s complement of the
-        //message, now complement the buffer contents to get the original data
-        for (i = 0; i < numBytesRead; i++)
-            gBuffer[i] = ~gBuffer[i];
-        
-        printf("Read \"%s\" (%ld bytes) from bulk endpoint\n", gBuffer,
-               numBytesRead);
-        
-#else   //Demonstrate asynchronous I/O
-        //As with service matching notifications, to receive asynchronous
-        //I/O completion notifications, you must create an event source and
-        //add it to the run loop
-        kr = (*interface)->CreateInterfaceAsyncEventSource(
-                                                           interface, &runLoopSource);
-        if (kr != kIOReturnSuccess)
-        {
-            printf("Unable to create asynchronous event source
-                   (%08x)\n", kr);
-                   (void) (*interface)->USBInterfaceClose(interface);
-                   (void) (*interface)->Release(interface);
-                   break;
-                   }
-                   CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource,
-                                      kCFRunLoopDefaultMode);
-                   printf("Asynchronous event source added to run loop\n");
-                   bzero(gBuffer, sizeof(gBuffer));
-                   strcpy(gBuffer, kTestMessage);
-                   kr = (*interface)->WritePipeAsync(interface, 2, gBuffer,
-                                                     strlen(gBuffer),
-                                                     WriteCompletion, (void *) interface);
-                   if (kr != kIOReturnSuccess)
-                   {
-                       printf("Unable to perform asynchronous bulk write (%08x)\n",
-                              kr);
-                       (void) (*interface)->USBInterfaceClose(interface);
-                       (void) (*interface)->Release(interface);
-                       break;
-                   }
-#endif
-         */
+
+        CFRunLoopRef cfRunLoop = [[NSRunLoop currentRunLoop] getCFRunLoop];
+        CFRunLoopAddSource(cfRunLoop, runLoopSource, kCFRunLoopDefaultMode);
+        printf("Asynchronous event source added to run loop\n");
     }
     
     return NO;
@@ -887,6 +837,7 @@ static dispatch_once_t onceToken;
     self = [super init];
     if (self) {
         asyncRunning = NO;
+        asyncQueue = dispatch_queue_create("com.us.alternet.rtlsdr.async", DISPATCH_QUEUE_CONCURRENT);
         
         if (deviceList == nil) {
             [RTLSDRDevice deviceList];
@@ -1023,6 +974,7 @@ static dispatch_once_t onceToken;
 -(double)setSampleRate:(double)newSampleRate
 {
     NSLog(@"setting sample rate: %f", newSampleRate);
+    
     // OSMOCOM RTL-SDR DERIVED CODE
     uint16_t tmp;
 	uint32_t rsamp_ratio;
@@ -1037,7 +989,7 @@ static dispatch_once_t onceToken;
     
 	real_rate = (rtlXtal * pow(2, 22)) / rsamp_ratio;
     
-	if ( sampleRate != real_rate )
+	if ( newSampleRate != real_rate )
 		NSLog(@"Exact sample rate is: %f Hz\n", real_rate);
     
     [tuner setBandWidth:real_rate];
@@ -1216,18 +1168,42 @@ static dispatch_once_t onceToken;
 
 
 typedef struct {
-    IOUSBInterfaceInterface **bulkInterface;
+    IOUSBInterfaceInterface220 **bulkInterface;
     int pipeRef;
     
-    NSUInteger newLength;
-    NSUInteger length;
+    UInt32 newLength;
+    UInt32 length;
+    void *bytes;
     
     // Obj-C objects needed for asynchronous operation
-    __unsafe_unretained NSMutableData *tempData;
     __unsafe_unretained RTLSDRDevice *device;
 } context_t;
 
-static context_t asyncContext;
+static context_t firstContext;
+static context_t secondContext;
+
+static uint64_t  startTime;
+static uint64_t  lastTime;
+static uint64_t  totalSamples;
+
+double subtractTimes( uint64_t endTime, uint64_t startTime );
+double subtractTimes( uint64_t endTime, uint64_t startTime )
+{
+	uint64_t difference = endTime - startTime;
+	static double conversion = 0.0;
+	
+	if( conversion == 0.0 )
+	{
+		mach_timebase_info_data_t info;
+		kern_return_t err = mach_timebase_info( &info );
+		
+		//Convert the timebase into seconds
+		if( err == 0  )
+			conversion = 1e-9 * (double) info.numer / (double) info.denom;
+	}
+	
+	return conversion * (double) difference;
+}
 
 #pragma mark Asynchronous operations
 - (RTLSDRAsyncBlock)block
@@ -1236,84 +1212,118 @@ static context_t asyncContext;
 }
 
 @synthesize asyncRunning;
+- (bool)stopReading
+{
+    
+    
+    return YES;
+}
+
 void asyncCallback(void *refcon, IOReturn kretval, void *arg0);
 
 void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
 {
-    context_t *contextPointer = refcon;
-    RTLSDRDevice *device = contextPointer->device;
-
-    IOUSBInterfaceInterface **bulkInterface = contextPointer->bulkInterface;
-    int pipeRef = contextPointer->pipeRef;
-
-    NSUInteger length = contextPointer->length;
-    NSMutableData *tempData = contextPointer->tempData;
-    
-// Make sure it worked
-    if (kretval != kIOReturnSuccess)
-    {
-        int system = err_get_system(kretval);
-        int subsys = err_get_sub(kretval);
-        int code = err_get_code(kretval);
+    @autoreleasepool {
+        context_t *contextPointer = refcon;
+        RTLSDRDevice *device = contextPointer->device;
         
-        printf("Unable to perform async. bulk read (0x%08x): system 0x%x,\
-               subsystem 0x%x, code 0x%x.\n", 
-               kretval, system, subsys, code);
-        [device stopReading];
-        return;
-    }
-
-// It's probably not wise to execute blocks if stopped
-    if([device asyncRunning]) {
-        // Schedule the block to run
-        RTLSDRAsyncBlock block = [device block];
+        IOUSBInterfaceInterface220 **bulkInterface = contextPointer->bulkInterface;
+        int pipeRef = contextPointer->pipeRef;
         
-        dispatch_async(dispatch_get_main_queue(), ^{
-            NSData *outData = [tempData copy];
-            block(outData);
-        });
+        UInt32 bytesRead = (UInt32)arg0;
+        UInt32 length = contextPointer->length;
+        void *bytes = contextPointer->bytes;
         
-// run it again, sam!
-    // Adjust the data size if neccessary
-        if (asyncContext.newLength != 0 &&
-            asyncContext.newLength != asyncContext.length) {
-            [asyncContext.tempData setLength:length];
-            asyncContext.length = length;
-            asyncContext.newLength = 0;
-        }
-
-    // Get a reference to the actual bytes        
-        uint8_t *bytes = [tempData mutableBytes];
-        UInt32 size = (UInt32)length;
-
-    // Run the Async command again
-        kretval = (*bulkInterface)->ReadPipeAsync(bulkInterface,
-                                                  pipeRef,
-                                                  bytes, size,
-                                                  asyncCallback,
-                                                  &asyncContext);
-        
-    // Check for errors
+        // Make sure it worked
         if (kretval != kIOReturnSuccess)
         {
             int system = err_get_system(kretval);
             int subsys = err_get_sub(kretval);
             int code = err_get_code(kretval);
             
-            printf("Unable to perform bulk read (0x%08x): system 0x%x,\
-                   subsystem 0x%x, code 0x%x.\n", 
+            printf("Unable to perform async. bulk read (0x%08x): system 0x%x, subsystem 0x%x, code 0x%x.\n",
                    kretval, system, subsys, code);
-
-            [device stopReading];
+            
+            (*bulkInterface)->ClearPipeStallBothEnds(bulkInterface, pipeRef);
+            (*bulkInterface)->ResetPipe(bulkInterface, pipeRef);
+            
+            // Run the Async command again
+            kretval = (*bulkInterface)->ReadPipeAsync(bulkInterface,
+                                                      pipeRef,
+                                                      bytes, length,
+                                                      asyncCallback,
+                                                      contextPointer);
+            
+            if (kretval != kIOReturnSuccess) {
+                printf("Reset endpoints didn't work, I'm out of options.\n");
+                [device stopReading];
+            }
+            
+            return;
         }
         
-        contextPointer->tempData = tempData;
+        totalSamples += bytesRead / 2;
+        
+        //    double deltaTime = subtractTimes(mach_absolute_time(), startTime);
+        //    double rate = totalSamples / deltaTime;
+        uint64_t thisTime = mach_absolute_time();
+        double deltaTime = subtractTimes(thisTime, lastTime);
+        lastTime = thisTime;
+        
+        double rate = (float)(bytesRead / 2) / deltaTime;
+        
+        if (COCOARADIODEVICE_ASYNCCALLBACK_ENABLED()) {
+            int context = 1;
+            if (&secondContext == contextPointer) {
+                context = 2;
+            }
+            COCOARADIODEVICE_ASYNCCALLBACK(context, (int)rate);
+        }
+        
+        device.realSampleRate = rate;
+        
+        // It's probably not wise to execute blocks if stopped
+        if([device asyncRunning]) {
+            [device block]([NSData dataWithBytes:bytes length:bytesRead], deltaTime);
+            
+            // run it again, sam!
+            // Adjust the data size if neccessary
+            if (contextPointer->newLength != 0 &&
+                contextPointer->newLength != contextPointer->length) {
+                contextPointer->bytes = realloc(contextPointer->bytes,
+                                                contextPointer->newLength);
+                contextPointer->length = contextPointer->newLength;
+                contextPointer->newLength = 0;
+            }
+            
+            // Run the Async command again
+            kretval = (*bulkInterface)->ReadPipeAsync(bulkInterface,
+                                                      pipeRef,
+                                                      bytes, length,
+                                                      asyncCallback,
+                                                      contextPointer);
+            
+            // Check for errors
+            if (kretval != kIOReturnSuccess)
+            {
+                int system = err_get_system(kretval);
+                int subsys = err_get_sub(kretval);
+                int code = err_get_code(kretval);
+                
+                printf("Unable to perform asynchronous bulk read (0x%08x): system 0x%x, subsystem 0x%x, code 0x%x.\n",
+                       kretval, system, subsys, code);
+                
+                [device stopReading];
+            }
+        }
     }
 }
 
 -(void)readAsynchLength:(NSUInteger)length
               withBlock:(RTLSDRAsyncBlock)inBlock
 {
+    IOReturn kretval;
+
 // Do all the same checking as readSync
     // Make sure that the length is a multiple of the packet size
     if (length % bulkPacketSize != 0) {
@@ -1326,37 +1336,97 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
         asyncBlock = inBlock;
 
         // Change the data length if necessary
-        if (length != asyncContext.length) {
-            asyncContext.newLength = length;
+        if (length != firstContext.length) {
+            firstContext.newLength = (UInt32)length;
+        }
+        if (length != secondContext.length) {
+            secondContext.newLength = (UInt32)length;
         }
         return;
+    } else {
+        asyncRunning = true;
     }
     
-    // Create an NSMutableData object
-    NSMutableData *tempData = [[NSMutableData alloc] initWithLength:length];
-    // Get a reference to the actual bytes
-    uint8_t *bytes = [tempData mutableBytes];
-    UInt32 size = (UInt32)length;
+    // Create an event source for asynchronous operations
+    kretval = (*bulkInterface)->CreateInterfaceAsyncEventSource(bulkInterface,
+                                                                &runLoopSource);
 
-    asyncBlock = inBlock;
-    asyncContext.device = self;
-    asyncContext.length = length;
-    asyncContext.tempData = tempData;
     
-    IOReturn kretval;
+    if (kretval != kIOReturnSuccess) {
+        int system = err_get_system(kretval);
+        int subsys = err_get_sub(kretval);
+        int code   = err_get_code(kretval);
+        
+        printf("Unable to create the asynchronous event source (0x%08x): system 0x%x, subsystem 0x%x, code 0x%x.\n",
+               kretval, system, subsys, code);
+        return;
+    }
+
+    // Add the run loop source to the run loop
+    CFRunLoopRef CFRunLoop = [[NSRunLoop currentRunLoop] getCFRunLoop];
+    CFRunLoopAddSource(CFRunLoop, runLoopSource,
+                       kCFRunLoopDefaultMode);
+
+    NSLog(@"Added asynchronous event source");
+    
+    asyncBlock = inBlock;
+    firstContext.device = self;
+    firstContext.length = (UInt32)length;
+    firstContext.bytes = malloc(length);
+    firstContext.bulkInterface = bulkInterface;
+    firstContext.pipeRef = bulkPipeRef;
+    
+    (*bulkInterface)->ClearPipeStallBothEnds(bulkInterface, bulkPipeRef);
+    (*bulkInterface)->ResetPipe(bulkInterface, bulkPipeRef);
+    [self resetEndpoints];
+    
     kretval = (*bulkInterface)->ReadPipeAsync(bulkInterface,
                                               bulkPipeRef,
-                                              bytes, size,
+                                              firstContext.bytes,
+                                              firstContext.length,
                                               asyncCallback,
-                                              &asyncContext);
+                                              &firstContext);
+
+    startTime = mach_absolute_time();
+    
     if (kretval != kIOReturnSuccess)
     {
         int system = err_get_system(kretval);
         int subsys = err_get_sub(kretval);
         int code = err_get_code(kretval);
         
-        printf("Unable to perform bulk read (0x%08x): system 0x%x,\
-               subsystem 0x%x, code 0x%x.\n", 
+        printf("Unable to perform bulk read (0x%08x): system 0x%x, subsystem 0x%x, code 0x%x.\n",
+               kretval, system, subsys, code);
+        return;
+    }
+    
+    // We want to have 2 asynchronous operations going at all times
+    // this means that we'll immediately start another.
+    secondContext.device = self;
+    secondContext.length = (UInt32)length;
+    secondContext.bytes = malloc(length);
+    secondContext.bulkInterface = bulkInterface;
+    secondContext.pipeRef = bulkPipeRef;
+
+    if (secondContext.bytes == NULL) {
+        printf("Unable to allocate bytes for the second async context");
+        return;
+    }
+    
+    kretval = (*bulkInterface)->ReadPipeAsync(bulkInterface,
+                                              bulkPipeRef,
+                                              firstContext.bytes,
+                                              firstContext.length,
+                                              asyncCallback,
+                                              &secondContext);
+    
+    if (kretval != kIOReturnSuccess)
+    {
+        int system = err_get_system(kretval);
+        int subsys = err_get_sub(kretval);
+        int code = err_get_code(kretval);
+        
+        printf("Unable to perform bulk read (0x%08x): system 0x%x, subsystem 0x%x, code 0x%x.\n",
                kretval, system, subsys, code);
         return;
     }
@@ -1366,7 +1436,8 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
 {
     asyncRunning = NO;
     asyncBlock = nil;
-    asyncContext.tempData = nil;
+    free(firstContext.bytes);
+    free(secondContext.bytes);
 }
 
 @end
