@@ -1319,6 +1319,20 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
     }
 }
 
+- (void)asyncLoop
+{
+    @autoreleasepool {
+        CFRunLoopRef cfRunLoop = [[NSRunLoop currentRunLoop] getCFRunLoop];
+        CFRunLoopAddSource(cfRunLoop, runLoopSource,
+                           kCFRunLoopDefaultMode);
+        [[NSRunLoop currentRunLoop] run];
+        
+        // We should never get here
+        NSLog(@"The async run loop exited!");
+        exit(EXIT_FAILURE);
+    }
+}
+
 -(void)readAsynchLength:(NSUInteger)length
               withBlock:(RTLSDRAsyncBlock)inBlock
 {
@@ -1363,10 +1377,16 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
     }
 
     // Add the run loop source to the run loop
-    CFRunLoopRef CFRunLoop = [[NSRunLoop currentRunLoop] getCFRunLoop];
-    CFRunLoopAddSource(CFRunLoop, runLoopSource,
-                       kCFRunLoopDefaultMode);
+//    CFRunLoopRef CFRunLoop = [[NSRunLoop currentRunLoop] getCFRunLoop];
+//    CFRunLoopAddSource(CFRunLoop, runLoopSource,
+//                       kCFRunLoopDefaultMode);
 
+    // Create a new NSThread with this event source
+    asyncThread = [[NSThread alloc] initWithTarget:self
+                                          selector:@selector(asyncLoop)
+                                            object:nil];
+    [asyncThread start];
+    
     NSLog(@"Added asynchronous event source");
     
     asyncBlock = inBlock;

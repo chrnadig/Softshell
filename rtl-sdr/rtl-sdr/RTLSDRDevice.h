@@ -44,6 +44,7 @@ typedef void (^RTLSDRAsyncBlock)(NSData *resultData, float duration);
     dispatch_queue_t asyncQueue;
     bool asyncRunning;
     RTLSDRAsyncBlock asyncBlock;
+    NSThread *asyncThread;
     
 //    libusb_context *context;
 //    libusb_device_handle *devh;
