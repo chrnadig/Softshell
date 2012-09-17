@@ -18,3 +18,7 @@ Cocoa-rtl-sdr.xcodeproj/xcuserdata/wdillon.xcuserdatad/xcdebugger/Breakpoints.xc
 Cocoa-rtl-sdr.xcodeproj/xcuserdata/wdillon.xcuserdatad/xcschemes/Softshell release.xcscheme
 
 rtl-sdr/rtl-sdr.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+
+.DS_Store
+
+rtl-sdr/.DS_Store
