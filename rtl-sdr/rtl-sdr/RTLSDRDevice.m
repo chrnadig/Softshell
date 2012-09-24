@@ -1321,6 +1321,9 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
 
 - (void)asyncLoop
 {
+    // Allow this thread to execute with maximum priority
+    [NSThread setThreadPriority:1.];
+
     @autoreleasepool {
         CFRunLoopRef cfRunLoop = [[NSRunLoop currentRunLoop] getCFRunLoop];
         CFRunLoopAddSource(cfRunLoop, runLoopSource,
