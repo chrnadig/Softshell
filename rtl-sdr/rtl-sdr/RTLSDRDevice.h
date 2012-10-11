@@ -114,7 +114,7 @@ typedef void (^RTLSDRAsyncBlock)(NSData *resultData, float duration);
                withBlock:(RTLSDRAsyncBlock)block;
 - (bool)stopReading;
 @property(readonly) bool asyncRunning;
-@property(readonly, assign) RTLSDRAsyncBlock asyncBlock;
+//@property(readonly, assign) RTLSDRAsyncBlock asyncBlock;
 @property(readonly) RTLSDRAsyncBlock block;
 
 /*!
