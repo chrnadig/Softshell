@@ -397,19 +397,19 @@
     self = [super initWithDevice:dev];
     if (self) {
         // Initialize tuner.
-        NSLog(@"tuner reset");
+//        NSLog(@"tuner reset");
         if (![self tunerReset]) {
             self = nil;
             return self;
         }
 
-        NSLog(@"tuner clock");
+//        NSLog(@"tuner clock");
         if (![self tunerClock]) {
             self = nil;
             return self;
         }
         
-        NSLog(@"q peak");
+//        NSLog(@"q peak");
         if (![self qPeak]) {
             self = nil;
             return self;
@@ -421,7 +421,7 @@
 //            return self;
 //        }
 
-        NSLog(@"gain control");
+//        NSLog(@"gain control");
         if (![self gainControlInit]) {
             self = nil;
             return self;
@@ -1345,7 +1345,7 @@
 {
     [device setI2cRepeater:YES];
 
-    NSLog(@"Set frequency to %f Hz", freqIn);
+//    NSLog(@"Set frequency to %f Hz", freqIn);
     // OSMOCOM RTL-SDR DERIVED CODE
 	// Set tuner RF frequency in KHz.
 	// Note: 1. RfFreqKhz = round(RfFreqHz / 1000)
@@ -1393,7 +1393,7 @@
 
 - (void)setBandWidth:(NSUInteger)newBandwidth
 {
-    NSLog(@"Setting bandwidth: %ld", newBandwidth);
+//    NSLog(@"Setting bandwidth: %ld", newBandwidth);
     // OSMOCOM RTL-SDR DERIVED CODE
     //	E4000_EXTRA_MODULE *pExtra;
     
