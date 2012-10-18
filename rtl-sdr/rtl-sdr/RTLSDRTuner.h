@@ -31,6 +31,7 @@
 
 @property (readwrite) double xtal;
 @property (readwrite) NSUInteger gain;
+@property (readwrite) int gainMode;
 @property (readwrite) NSUInteger bandWidth;
 
 @end

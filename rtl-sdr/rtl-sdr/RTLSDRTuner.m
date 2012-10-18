@@ -12,6 +12,7 @@
 #import "RTLSDRTuner_fc0012.h"
 #import "RTLSDRTuner_fc0013.h"
 #import "RTLSDRTuner_fc2580.h"
+#import "RTLSDRTuner_r820t.h"
 
 @implementation RTLSDRTuner
 
@@ -44,6 +45,16 @@
         return tuner;
     }
     
+//    reg = rtlsdr_i2c_read_reg(dev, R820T_I2C_ADDR, R820T_CHECK_ADDR);
+    reg = [device readI2cRegister:R820T_CHECK_ADDR fromAddress:R820T_I2C_ADDR];
+	if (reg == R820T_CHECK_VAL) {
+		fprintf(stderr, "Found Rafael Micro R820T tuner\n");
+        tuner = [[RTLSDRTuner_r820t alloc] initWithDevice:device];
+        
+        [device setI2cRepeater:NO];
+        return tuner;
+	}
+
     /* initialise GPIOs */
 //  rtlsdr_set_gpio_output(dev, 5);
     [device setGpioOutput:5];
