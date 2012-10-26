@@ -34,6 +34,9 @@
 #define CTRL_TIMEOUT	1000
 #define BULK_TIMEOUT	0
 
+/* two raised to the power of n */
+#define TWO_POW(n)		((double)(1ULL<<(n)))
+
 typedef struct rtlsdr_dongle {
 	uint16_t vid;
 	uint16_t pid;
@@ -424,23 +427,18 @@ static dispatch_once_t onceToken;
 
 - (void)setI2cRepeater:(bool)enabled
 {
-    // OSMOCOM RTL-SDR DERIVED CODE
     if (enabled) {
         [self demodWriteValue:0x18 AtAddress:0x01 InBlock:1 Length:1];
-        //        rtlsdr_demod_write_reg(dev, 1, 0x01, on ? 0x18 : 0x10, 1);
+//        rtlsdr_demod_write_reg(dev, 1, 0x01, on ? 0x18 : 0x10, 1);
     } else {
         [self demodWriteValue:0x10 AtAddress:0x01 InBlock:1 Length:1];
-        //        rtlsdr_demod_write_reg(dev, 1, 0x01, on ? 0x18 : 0x10, 1);
+//        rtlsdr_demod_write_reg(dev, 1, 0x01, on ? 0x18 : 0x10, 1);
     }
-    // END OSMOCOM CODE
 }
 
 - (int)readArray:(uint8_t*)array fromAddress:(uint16_t)addr inBlock:(uint8_t)block length:(uint8_t)bytes
 {
-    // OSMOCOM RTL-SDR DERIVED CODE
 	uint16_t index = (block << 8);
-//	r = libusb_control_transfer(devh, CTRL_IN, 0, addr, index, array, len, CTRL_TIMEOUT);
-    // END OSMOCOM CODE
     
     IOUSBDevRequest     request;
     request.bmRequestType = USBmakebmRequestType(kUSBIn, kUSBVendor, kUSBDevice);
@@ -461,10 +459,7 @@ static dispatch_once_t onceToken;
 
 - (int)writeArray:(uint8_t *)array toAddress:(uint16_t)addr inBlock:(uint8_t)block length:(uint8_t)bytes
 {
-    // OSMOCOM RTL-SDR DERIVED CODE
 	uint16_t index = (block << 8) | 0x10;
-//	r = libusb_control_transfer(devh, CTRL_OUT, 0, addr, index, array, len, CTRL_TIMEOUT);    
-    // END OSMOCOM CODE
 
     IOUSBDevRequest     request;
     request.bmRequestType = USBmakebmRequestType(kUSBOut, kUSBVendor, kUSBDevice);
@@ -480,13 +475,22 @@ static dispatch_once_t onceToken;
     
     kern_return_t kretval = (*dev)->DeviceRequest(dev, &request);
     
+    if (kretval != kIOReturnSuccess) {
+        int system = err_get_system(kretval);
+        int subsys = err_get_sub(kretval);
+        int code   = err_get_code(kretval);
+        
+        printf("Device array write to address 0x%x failed (%d): system 0x%x, subsystem %d, code 0x%x\n",
+               addr, kretval, system, subsys, code);
+        return kretval;
+    }
+
 	return kretval;
 
 }
 
 - (int)writeI2cRegister:(uint8_t)reg atAddress:(uint8_t)i2c_addr withValue:(uint8_t)val
 {
-    // OSMOCOM RTL-SDR DERIVED CODE
 	uint16_t addr = i2c_addr;
 	uint8_t data[2];
     
@@ -497,19 +501,15 @@ static dispatch_once_t onceToken;
     NSLog(@"I2C write register 0x%x address 0x%x data 0x%x", reg, i2c_addr, val);
 #endif
 
-    //	return rtlsdr_write_array(dev, IICB, addr, (uint8_t *)&data, 2);
     return [self writeArray:(uint8_t *)&data toAddress:addr inBlock:IICB length:2];
-    // END OSMOCOM CODE
 }
 
 - (uint8_t)readI2cRegister:(uint8_t)reg fromAddress:(uint8_t)i2c_addr
 {
 	uint16_t addr = i2c_addr;
-	uint8_t data;
+	uint8_t data = 0;
     
-//	rtlsdr_write_array(dev, IICB, addr, &reg, 1);
-    [self writeArray:&reg toAddress:addr inBlock:IICB length:1];
-//	rtlsdr_read_array(dev, IICB, addr, &data, 1);
+    [self writeArray:&reg toAddress:addr   inBlock:IICB length:1];
     [self readArray:&data fromAddress:addr inBlock:IICB length:1];
     
 #ifdef DEBUG_USB
@@ -616,9 +616,11 @@ static dispatch_once_t onceToken;
 //	rtlsdr_demod_write_reg(dev, 1, 0x16, 0x0000, 2);
     [self demodWriteValue:0x0000 AtAddress:0x16 InBlock:1 Length:2];
     
-	/* set IF-frequency to 0 Hz */
-//	rtlsdr_demod_write_reg(dev, 1, 0x19, 0x0000, 2);
-    [self demodWriteValue:0x0000 AtAddress:0x19 InBlock:1 Length:2];
+	/* clear both DDC shift and IF frequency registers  */
+	for (i = 0; i < 6; i++) {
+//		rtlsdr_demod_write_reg(dev, 1, 0x16 + i, 0x00, 1);
+        [self demodWriteValue:0x00 AtAddress:(0x16 + i) InBlock:1 Length:1];
+    }
     
 	/* set FIR coefficients */
 	for (i = 0; i < sizeof (fir_coeff); i++) {
@@ -626,17 +628,24 @@ static dispatch_once_t onceToken;
         [self demodWriteValue:fir_coeff[i] AtAddress:(0x1c + i) InBlock:1 Length:1];
     }
     
-//	rtlsdr_demod_write_reg(dev, 0, 0x19, 0x25, 1);
-    [self demodWriteValue:0x25 AtAddress:0x19 InBlock:0 Length:1];
+	/* enable SDR mode, disable DAGC (bit 5) */
+//	rtlsdr_demod_write_reg(dev, 0, 0x19, 0x05, 1);
+    [self demodWriteValue:0x05 AtAddress:0x19 InBlock:0 Length:1];
 
 	/* init FSM state-holding register */
 //	rtlsdr_demod_write_reg(dev, 1, 0x93, 0xf0, 1);
     [self demodWriteValue:0xf0 AtAddress:0x93 InBlock:1 Length:1];
-    
-	/* disable AGC (en_dagc, bit 0) */
+//  rtlsdr_demod_write_reg(dev, 1, 0x94, 0x0f, 1);
+    [self demodWriteValue:0x0f AtAddress:0x94 InBlock:1 Length:1];
+
+	/* disable AGC (en_dagc, bit 0) (this seems to have no effect) */
 //	rtlsdr_demod_write_reg(dev, 1, 0x11, 0x00, 1);
     [self demodWriteValue:0x00 AtAddress:0x11 InBlock:1 Length:1];
     
+    /* disable RF and IF AGC loop */
+//	rtlsdr_demod_write_reg(dev, 1, 0x04, 0x00, 1);
+    [self demodWriteValue:0x00 AtAddress:0x04 InBlock:1 Length:1];
+
 	/* disable PID filter (enable_PID = 0) */
 //	rtlsdr_demod_write_reg(dev, 0, 0x61, 0x60, 1);
     [self demodWriteValue:0x60 AtAddress:0x61 InBlock:0 Length:1];
@@ -649,13 +658,17 @@ static dispatch_once_t onceToken;
 	 * IQ estimation/compensation (en_iq_comp, en_iq_est) */
 //	rtlsdr_demod_write_reg(dev, 1, 0xb1, 0x1b, 1);
     [self demodWriteValue:0x1b AtAddress:0xb1 InBlock:1 Length:1];
+    
+    /* disable 4.096 MHz clock output on pin TP_CK0 */
+//	rtlsdr_demod_write_reg(dev, 0, 0x0d, 0x83, 1);
+    [self demodWriteValue:0x83 AtAddress:0x0d InBlock:0 Length:1];
 }
 
 - (id)init
 {
     self = [super init];
     if (self) {
-        // Initialization code here.
+        tunerClock = 28800000;
     }
     
     return self;
@@ -844,6 +857,8 @@ static dispatch_once_t onceToken;
 {
     self = [super init];
     if (self) {
+        tunerClock = 28800000;
+        
         asyncRunning = NO;
         asyncQueue = dispatch_queue_create("com.us.alternet.rtlsdr.async", DISPATCH_QUEUE_CONCURRENT);
         
@@ -974,6 +989,20 @@ static dispatch_once_t onceToken;
 #pragma mark -
 #pragma mark Getters and Setters
 // Sample rate getting/setting
+- (void)setSampleRateCorrection:(double)correctionPPM
+{
+	uint8_t tmp;
+	int16_t offs = correctionPPM * (-1) * TWO_POW(24) / 1000000;
+    
+	tmp = offs & 0xff;
+//	r |= rtlsdr_demod_write_reg(dev, 1, 0x3f, tmp, 1);
+    [self demodWriteValue:tmp AtAddress:0x3f InBlock:1 Length:1];
+    
+	tmp = (offs >> 8) & 0x3f;
+//	r |= rtlsdr_demod_write_reg(dev, 1, 0x3e, tmp, 1);
+    [self demodWriteValue:tmp AtAddress:0x3e InBlock:1 Length:1];
+}
+
 -(double)sampleRate
 {
     return sampleRate;
@@ -981,8 +1010,6 @@ static dispatch_once_t onceToken;
 
 -(double)setSampleRate:(double)newSampleRate
 {
-//    NSLog(@"setting sample rate: %f", newSampleRate);
-    
     // OSMOCOM RTL-SDR DERIVED CODE
     uint16_t tmp;
 	uint32_t rsamp_ratio;
@@ -1011,6 +1038,8 @@ static dispatch_once_t onceToken;
 	tmp = rsamp_ratio & 0xffff;
     [self demodWriteValue:tmp AtAddress:0xa1 InBlock:1 Length:2];
 //  rtlsdr_demod_write_reg(dev, 1, 0xa1, tmp, 2);
+    
+    [self setSampleRateCorrection:0];
     
 	/* reset demod (bit 3, soft_rst) */
     [self demodWriteValue:0x14 AtAddress:0x01 InBlock:1 Length:1];
@@ -1110,6 +1139,31 @@ static dispatch_once_t onceToken;
 	}
     
     // END O%uM CODE
+}
+
+- (float)ifFrequency
+{
+    return ifFrequency;
+}
+
+- (void)setIfFrequency:(float)inFreq
+{
+    int32_t if_freq;
+    uint8_t tmp;
+    
+    if_freq = ((inFreq * TWO_POW(22)) / rtlXtal) * (-1);
+    
+    tmp = (if_freq >> 16) & 0x3f;
+//    r = rtlsdr_demod_write_reg(dev, 1, 0x19, tmp, 1);
+    [self demodWriteValue:tmp AtAddress:0x19 InBlock:1 Length:1];
+    
+    tmp = (if_freq >> 8) & 0xff;
+//    r |= rtlsdr_demod_write_reg(dev, 1, 0x1a, tmp, 1);
+    [self demodWriteValue:tmp AtAddress:0x1a InBlock:1 Length:1];
+
+    tmp = if_freq & 0xff;
+//    r |= rtlsdr_demod_write_reg(dev, 1, 0x1b, tmp, 1);
+    [self demodWriteValue:tmp AtAddress:0x1b InBlock:1 Length:1];
 }
 
 #pragma mark -

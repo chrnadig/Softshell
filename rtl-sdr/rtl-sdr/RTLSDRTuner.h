@@ -34,4 +34,8 @@
 @property (readwrite) int gainMode;
 @property (readwrite) NSUInteger bandWidth;
 
+// This is used for devices like the R820t that use a non-zero IF
+// this value is the offset to be added to the desired tuning freq.
+@property (readonly) float tuningOffset;
+
 @end

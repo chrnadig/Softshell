@@ -182,8 +182,10 @@ I2C_Write(RTLSDRDevice *device, R828_I2C_TYPE *I2C_Info)
     //	printf("called %s: %02x -> %02x\n", __FUNCTION__, WritingBuffer[0], WritingBuffer[1]);
     
 //	if (rtlsdr_i2c_write_fn(device, R820T_I2C_ADDR, WritingBuffer, 2) < 0)
-	if ([device writeI2cAtAddress:R820T_I2C_ADDR withBuffer:WritingBuffer length:2] < 0)
+	if ([device writeI2cAtAddress:R820T_I2C_ADDR withBuffer:WritingBuffer length:2] < 0) {
+        NSLog(@"Unable to write to i2c at address 0x%x with data: 0x%x", I2C_Info->RegAddr, I2C_Info->Data);
 		return RT_Fail;
+    }
     
 	return RT_Success;
 }
@@ -2395,8 +2397,9 @@ R828_ErrCode R828_SetStandard(RTLSDRDevice *device, R828_Standard_Type RT_Standa
 	R828_Arry[10]  = (R828_Arry[10] & 0x7F) | Sys_Info1.FLT_EXT_WIDEST;
 	R828_I2C.RegAddr  = 0x0F;
 	R828_I2C.Data     = R828_Arry[10];
-	if(I2C_Write(device, &R828_I2C) != RT_Success)
-		return RT_Fail;
+//	if(I2C_Write(device, &R828_I2C) != RT_Success)
+//		return RT_Fail;
+	I2C_Write(device, &R828_I2C);
     
 	//RF poly filter current
 	R828_Arry[20]  = (R828_Arry[20] & 0x9F) | Sys_Info1.POLYFIL_CUR;
@@ -2931,10 +2934,11 @@ R828_ErrCode R828_RfGainMode(RTLSDRDevice *device, R828_RF_Gain_TYPE R828_RfGain
 {
     self = [super initWithDevice:dev];
     if (self != nil) {
-
+        offset = 0;
+        
         /* disable Zero-IF mode */
 //		rtlsdr_demod_write_reg(dev, 1, 0xb1, 0x1a, 1);
-        [device demodWriteValue:0x1a AtAddress:0x01 InBlock:1 Length:1];
+        [device demodWriteValue:0x1a AtAddress:0xb1 InBlock:1 Length:1];
         
 		/* only enable In-phase ADC input */
 //		rtlsdr_demod_write_reg(dev, 0, 0x08, 0x4d, 1);
@@ -2942,20 +2946,26 @@ R828_ErrCode R828_RfGainMode(RTLSDRDevice *device, R828_RF_Gain_TYPE R828_RfGain
         
 		/* the R820T uses 3.57 MHz IF for the DVB-T 6 MHz mode, and
 		 * 4.57 MHz for the 8 MHz mode */
-//		rtlsdr_set_if_freq(dev, R820T_IF_FREQ);        
-//TODO: Figure out what to do about this
+//		rtlsdr_set_if_freq(dev, R820T_IF_FREQ);
+        [device setIfFrequency:R820T_IF_FREQ];
 
 		/* enable spectrum inversion */
 //		rtlsdr_demod_write_reg(dev, 1, 0x15, 0x01, 1);
         [device demodWriteValue:0x01 AtAddress:0x15 InBlock:1 Length:1];
     }
     
+    R828_Init(dev);
+    [self setStandardMode:DVB_T_6M];
+    
     return self;
 }
 
 -(double)setFreq:(double)RfFreqHz
 {
-	R828_Set_Info R828Info;
+    freq = RfFreqHz;
+    double offsetFreq = RfFreqHz - offset;
+    
+    R828_Set_Info R828Info;
     
     //	if(pExtra->IsStandardModeSet==NO)
     //		goto error_status_set_tuner_rf_frequency;
@@ -2965,10 +2975,11 @@ R828_ErrCode R828_RfGainMode(RTLSDRDevice *device, R828_RF_Gain_TYPE R828_RfGain
 	R828Info.RF_Hz = (uint32)(RfFreqHz);
 	R828Info.RF_KHz = (uint32)(RfFreqHz/1000);
     
-	if(R828_SetFrequency(device, R828Info, NORMAL_MODE) != RT_Success)
-		return FUNCTION_ERROR;
+    [device setI2cRepeater:YES];
+	R828_SetFrequency(device, R828Info, NORMAL_MODE);
+    [device setI2cRepeater:NO];
     
-	return FUNCTION_SUCCESS;
+    return RfFreqHz;
 }
 
 -(void)setStandardMode:(int)standardMode
@@ -2984,6 +2995,21 @@ R828_ErrCode R828_RfGainMode(RTLSDRDevice *device, R828_RF_Gain_TYPE R828_RfGain
 -(void)setGainMode:(int)gainMode
 {
     R828_RfGainMode(device, gainMode);
+}
+
+-(void)setBandWidth:(NSUInteger)bandWidth
+{
+    return;
+}
+
+- (NSUInteger)bandWidth
+{
+    return -1;
+}
+
+-(float)tuningOffset
+{
+    return 3.57;
 }
 
 @end

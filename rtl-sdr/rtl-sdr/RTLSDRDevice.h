@@ -30,8 +30,10 @@ typedef void (^RTLSDRAsyncBlock)(NSData *resultData, float duration);
     NSUInteger freqCorrection;
     NSUInteger tunerGain;
 
+    float ifFrequency;
+    
     double sampleRate;
-
+    
     RTLSDRTuner *tuner;
     
     IOUSBDeviceInterface **dev;
@@ -98,7 +100,10 @@ typedef void (^RTLSDRAsyncBlock)(NSData *resultData, float duration);
  */
 - (double)sampleRate;
 - (double)setSampleRate:(double)sampleRate;
+- (void)setSampleRateCorrection:(double)correctionPPM;
 @property(readwrite) double realSampleRate;
+
+@property(readwrite) float ifFrequency;
 
 /* streaming functions */
 

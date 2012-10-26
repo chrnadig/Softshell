@@ -159,5 +159,8 @@ typedef struct _R828_I2C_TYPE
 }R828_I2C_TYPE;
 
 @interface RTLSDRTuner_r820t : RTLSDRTuner
+{
+    double offset;
+}
 
 @end

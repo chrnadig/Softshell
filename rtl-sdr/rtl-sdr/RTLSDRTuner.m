@@ -146,4 +146,9 @@
     NSLog(@"Trying to access the baseclass, this doesn't do anything.");
 }
 
+-(float)tuningOffset
+{
+    return 0.;
+}
+
 @end
