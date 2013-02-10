@@ -2963,8 +2963,8 @@ R828_ErrCode R828_RfGainMode(RTLSDRDevice *device, R828_RF_Gain_TYPE R828_RfGain
 -(double)setFreq:(double)RfFreqHz
 {
     freq = RfFreqHz;
-    double offsetFreq = RfFreqHz - offset;
-    
+//    double offsetFreq = RfFreqHz - offset;
+
     R828_Set_Info R828Info;
     
     //	if(pExtra->IsStandardModeSet==NO)
