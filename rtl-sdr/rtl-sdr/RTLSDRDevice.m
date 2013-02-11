@@ -1356,6 +1356,7 @@ void asyncCallback(void *refcon, IOReturn kretval, void *arg0)
                                                 contextPointer->newLength);
                 contextPointer->length = contextPointer->newLength;
                 contextPointer->newLength = 0;
+                bytes = contextPointer->bytes;
             }
             
             // Run the Async command again
