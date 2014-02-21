@@ -21,5 +21,5 @@ In the majority of cases, the osmocom code is marked by:
 As their code is GPL v. 2, so is this code.  A copy of the GPL is available
 in the COPYING file.
 
-At the current time, only the E4000 tuner is supported, as it's the only one I have.
+At the current time, only the E4000 and R820t tuners are supported, as they're the only ones I have.
 I accept donations if you want ports of other tuners supported.
